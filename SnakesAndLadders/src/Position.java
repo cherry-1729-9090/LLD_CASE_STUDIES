@@ -1,6 +1,5 @@
 /**
- * Represents a position on the Snakes and Ladders board.
- * Follows Single Responsibility Principle - only manages position data.
+ * Immutable position representation on the game board.
  */
 public class Position {
     private final int value;

@@ -1,9 +1,7 @@
 import java.util.*;
 
 /**
- * Enhanced game engine with configurable rules support.
- * More human-readable code with clear method names and logic flow.
- * Supports all modern game variants while maintaining clean architecture.
+ * Game engine with configurable rules support and human-readable code structure.
  */
 public class GameEngine {
     private final Board board;
@@ -28,13 +26,12 @@ public class GameEngine {
         this.gameEnded = false;
     }
     
-    // Convenience constructor with default classic rules
     public GameEngine(Board board, Dice dice, List<Player> players) {
         this(board, dice, players, GameRules.createClassicRules());
     }
     
     /**
-     * Adds someone to watch the game unfold.
+     * Adds observer to watch game events.
      */
     public void addObserver(GameObserver observer) {
         if (observer != null) {
@@ -43,7 +40,7 @@ public class GameEngine {
     }
     
     /**
-     * Starts the game and lets players take turns until someone wins.
+     * Starts the game with turn-based play until completion.
      */
     public void startGame() {
         if (gameEnded) {
@@ -53,7 +50,7 @@ public class GameEngine {
         announceGameStart();
         
         int turnCounter = 0;
-        int maxTurns = 2000; // Prevent infinite games
+        int maxTurns = 2000;
         
         while (!gameEnded && turnCounter < maxTurns) {
             playPlayerTurn(getCurrentPlayer());
@@ -69,31 +66,27 @@ public class GameEngine {
     }
     
     /**
-     * Handles a single player's turn - the heart of the game logic.
+     * Handles a single player's turn with dice roll and move logic.
      */
     private void playPlayerTurn(Player player) {
         int diceRoll = dice.roll();
         
-        // Track consecutive sixes for penalty rules
         if (diceRoll == 6) {
             player.rollSix();
         } else {
             player.rollNonSix();
         }
         
-        // Check if player gets penalized for too many sixes
         if (shouldPenalizeForConsecutiveSixes(player)) {
             applyConsecutiveSixesPenalty(player);
             return;
         }
         
-        // Handle players who need to enter the board first
         if (!player.hasEnteredBoard() && rules.needSixToEnter()) {
             handleBoardEntry(player, diceRoll);
             return;
         }
         
-        // Normal move logic
         executePlayerMove(player, diceRoll);
     }
     

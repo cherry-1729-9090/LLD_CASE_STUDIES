@@ -1,7 +1,5 @@
 /**
- * Represents a ladder on the board.
- * Follows Single Responsibility Principle - only manages ladder data.
- * Immutable class for thread safety.
+ * Immutable ladder representation with bottom and top positions.
  */
 public class Ladder {
     private final Position bottom;

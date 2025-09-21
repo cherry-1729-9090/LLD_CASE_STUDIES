@@ -1,16 +1,13 @@
 import java.util.*;
 
 /**
- * Represents the game board with snakes and ladders.
- * Follows Single Responsibility Principle - manages board state.
- * Uses composition to contain snakes and ladders.
+ * Game board containing snakes and ladders with immutable state.
  */
 public class Board {
     private final int size;
     private final List<Snake> snakes;
     private final List<Ladder> ladders;
     
-    // Package-private constructor - only accessible through Builder
     Board(BoardBuilder builder) {
         this.size = builder.size;
         this.snakes = Collections.unmodifiableList(new ArrayList<>(builder.snakes));
@@ -31,7 +28,6 @@ public class Board {
     
     /**
      * Gets the final position after considering snakes and ladders.
-     * Follows Single Responsibility - only handles position calculation.
      */
     public Position getFinalPosition(Position position) {
         // Check for snake

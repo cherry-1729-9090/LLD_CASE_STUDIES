@@ -1,7 +1,5 @@
 /**
- * Configurable game rules for Snakes and Ladders.
- * Uses Builder pattern for easy setup and future extensibility.
- * Makes the game more human-friendly with customizable options.
+ * Configurable game rules using Builder pattern for easy setup and extensibility.
  */
 public class GameRules {
     private final boolean needSixToEnter;
@@ -10,7 +8,6 @@ public class GameRules {
     private final WinningStrategy winningStrategy;
     private final int maxConsecutiveSixes;
     
-    // Private constructor - use Builder
     private GameRules(GameRulesBuilder builder) {
         this.needSixToEnter = builder.needSixToEnter;
         this.allowPlayerCollisions = builder.allowPlayerCollisions;
@@ -19,43 +16,28 @@ public class GameRules {
         this.maxConsecutiveSixes = builder.maxConsecutiveSixes;
     }
     
-    /**
-     * Do players need to roll a 6 to enter the board?
-     */
     public boolean needSixToEnter() {
         return needSixToEnter;
     }
     
-    /**
-     * Can players eliminate each other by landing on same position?
-     */
     public boolean allowPlayerCollisions() {
         return allowPlayerCollisions;
     }
     
-    /**
-     * Should players be penalized for rolling three consecutive sixes?
-     */
     public boolean hasThreeSixesPenalty() {
         return threeSixesPenalty;
     }
     
-    /**
-     * How should players win the game?
-     */
     public WinningStrategy getWinningStrategy() {
         return winningStrategy;
     }
     
-    /**
-     * Maximum consecutive sixes before penalty (if enabled).
-     */
     public int getMaxConsecutiveSixes() {
         return maxConsecutiveSixes;
     }
     
     /**
-     * Creates standard/classic rules for traditional gameplay.
+     * Creates standard rules for traditional gameplay.
      */
     public static GameRules createClassicRules() {
         return new GameRulesBuilder()
@@ -67,7 +49,7 @@ public class GameRules {
     }
     
     /**
-     * Creates modern/fun rules with more interactive features.
+     * Creates modern rules with interactive features.
      */
     public static GameRules createModernRules() {
         return new GameRulesBuilder()

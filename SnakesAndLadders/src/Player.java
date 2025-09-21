@@ -1,7 +1,5 @@
 /**
- * Represents a player in the Snakes and Ladders game.
- * Enhanced to support new rule features and track game state.
- * Follows Single Responsibility Principle - manages player state.
+ * Represents a player with enhanced state tracking for rule-based gameplay.
  */
 public class Player {
     private final String name;
@@ -15,8 +13,8 @@ public class Player {
             throw new IllegalArgumentException("Player name cannot be null or empty");
         }
         this.name = name.trim();
-        this.currentPosition = new Position(1); // Start at position 1
-        this.hasEnteredBoard = false; // Player hasn't entered yet
+        this.currentPosition = new Position(1);
+        this.hasEnteredBoard = false;
         this.consecutiveSixes = 0;
         this.totalMoves = 0;
     }
@@ -44,7 +42,7 @@ public class Player {
     }
     
     /**
-     * Checks if player has won based on position and winning strategy.
+     * Checks if player has won based on winning strategy.
      */
     public boolean hasWon(WinningStrategy strategy) {
         switch (strategy) {

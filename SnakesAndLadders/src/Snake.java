@@ -1,7 +1,5 @@
 /**
- * Represents a snake on the board.
- * Follows Single Responsibility Principle - only manages snake data.
- * Immutable class for thread safety.
+ * Immutable snake representation with head and tail positions.
  */
 public class Snake {
     private final Position head;

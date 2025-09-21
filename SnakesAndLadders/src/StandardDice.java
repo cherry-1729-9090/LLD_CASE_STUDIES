@@ -1,9 +1,7 @@
 import java.util.Random;
 
 /**
- * Standard implementation of a 6-sided dice.
- * Follows Single Responsibility Principle - only handles dice rolling.
- * Implements Strategy Pattern through Dice interface.
+ * Standard 6-sided dice implementation using Strategy pattern.
  */
 public class StandardDice implements Dice {
     private static final int MIN_VALUE = 1;
@@ -15,7 +13,6 @@ public class StandardDice implements Dice {
         this.random = new Random();
     }
     
-    // Constructor for testing with seed
     public StandardDice(long seed) {
         this.random = new Random(seed);
     }

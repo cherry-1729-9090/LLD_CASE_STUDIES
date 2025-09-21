@@ -1,20 +1,7 @@
 import java.util.*;
 
 /**
- * Main application class for Snakes and Ladders game.
- * Demonstrates the use of all design patterns and SOLID principles.
- * 
- * Design Patterns Used:
- * 1. Builder Pattern - BoardBuilder for creating complex Board objects
- * 2. Strategy Pattern - Dice interface with StandardDice implementation
- * 3. Observer Pattern - GameObserver interface with GameStatistics implementation
- * 
- * SOLID Principles Applied:
- * 1. Single Responsibility - Each class has one reason to change
- * 2. Open/Closed - Classes are open for extension, closed for modification
- * 3. Liskov Substitution - Derived classes can substitute base classes
- * 4. Interface Segregation - Interfaces are focused and specific
- * 5. Dependency Inversion - Depend on abstractions, not concretions
+ * Main application demonstrating Snakes and Ladders game with SOLID principles and design patterns.
  */
 public class App {
     public static void main(String[] args) {
@@ -39,7 +26,7 @@ public class App {
     }
     
     /**
-     * Demonstrates a quick game with default board setup.
+     * Quick game demonstration with default setup.
      */
     private static void playQuickGame() {
         System.out.println("\n🎮 Starting Quick Game with Default Setup...");
@@ -61,23 +48,20 @@ public class App {
         // Create game engine with dependency injection
         GameEngine gameEngine = new GameEngine(board, dice, players);
         
-        // Add observer for game statistics (Observer Pattern)
         GameStatistics statistics = new GameStatistics();
         gameEngine.addObserver(statistics);
         
-        // Start the game
         gameEngine.startGame();
     }
     
     /**
-     * Demonstrates a custom game setup with manual board configuration.
+     * Custom game demonstration with manual board configuration.
      */
     private static void playCustomGame() {
         System.out.println("\n🎮 Starting Custom Game...");
         
-        // Create custom board using Builder Pattern
         Board customBoard = new BoardBuilder()
-                .setSize(30) // Even smaller board for quicker game
+                .setSize(30)
                 .addSnake(new Position(29), new Position(15))
                 .addSnake(new Position(25), new Position(7))
                 .addSnake(new Position(20), new Position(12))
@@ -87,27 +71,22 @@ public class App {
                 .addLadder(new Position(16), new Position(26))
                 .build();
         
-        // Create dice with fixed seed for reproducible results (useful for testing)
         Dice deterministicDice = new StandardDice(12345L);
         
-        // Create more players
         List<Player> players = Arrays.asList(
                 new Player("Charlie"),
                 new Player("Diana"),
                 new Player("Eve")
         );
         
-        // Create game engine
         GameEngine gameEngine = new GameEngine(customBoard, deterministicDice, players);
         
-        // Add multiple observers
         GameStatistics statistics = new GameStatistics();
         ConsoleGameLogger logger = new ConsoleGameLogger();
         
         gameEngine.addObserver(statistics);
         gameEngine.addObserver(logger);
         
-        // Print board information
         System.out.println("Custom Board Info: " + customBoard);
         System.out.println("Snakes on board: " + customBoard.getSnakes().size());
         System.out.println("Ladders on board: " + customBoard.getLadders().size());

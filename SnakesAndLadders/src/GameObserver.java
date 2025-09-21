@@ -1,32 +1,15 @@
 /**
- * Observer interface for game events.
- * Enhanced to support new rule-based events.
- * Follows Observer Design Pattern for loose coupling between game engine and observers.
+ * Observer interface for game events following Observer design pattern.
  */
 public interface GameObserver {
-    /**
-     * Called when a player moves.
-     */
     void onPlayerMoved(Player player, Position oldPosition, Position newPosition, int diceRoll);
     
-    /**
-     * Called when a player encounters a snake.
-     */
     void onSnakeEncounter(Player player, Position snakeHead, Position snakeTail);
     
-    /**
-     * Called when a player encounters a ladder.
-     */
     void onLadderEncounter(Player player, Position ladderBottom, Position ladderTop);
     
-    /**
-     * Called when a player wins the game.
-     */
     void onPlayerWon(Player player, int totalMoves);
     
-    /**
-     * Called when the game starts.
-     */
     void onGameStarted(java.util.List<Player> players);
     
     /**
