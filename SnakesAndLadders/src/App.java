@@ -157,5 +157,25 @@ public class App {
         public void onGameEnded(Player winner) {
             System.out.println("📝 Logger: Game session ended. Winner: " + winner.getName());
         }
+        
+        @Override
+        public void onPlayerTryingToEnter(Player player, int diceRoll, boolean successful) {
+            // Optional logging for entry attempts
+        }
+        
+        @Override
+        public void onPlayerEliminated(Player eliminator, Player eliminated) {
+            System.out.println("📝 Logger: Player elimination logged");
+        }
+        
+        @Override
+        public void onConsecutiveSixesPenalty(Player player, int consecutiveSixes) {
+            System.out.println("📝 Logger: Penalty applied for consecutive sixes");
+        }
+        
+        @Override
+        public void onMoveBlocked(Player player, int diceRoll, String reason) {
+            System.out.println("📝 Logger: Move blocked - " + reason);
+        }
     }
 }

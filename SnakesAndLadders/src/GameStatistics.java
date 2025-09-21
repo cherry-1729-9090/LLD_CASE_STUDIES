@@ -89,6 +89,32 @@ public class GameStatistics implements GameObserver {
         this.gameEndTime = 0;
     }
     
+    @Override
+    public void onPlayerTryingToEnter(Player player, int diceRoll, boolean successful) {
+        if (successful) {
+            System.out.println("🚪 " + player.getName() + " rolled " + diceRoll + " and entered the board!");
+        } else {
+            System.out.println("🚫 " + player.getName() + " rolled " + diceRoll + " but needs 6 to enter");
+        }
+    }
+    
+    @Override
+    public void onPlayerEliminated(Player eliminator, Player eliminated) {
+        System.out.println("💥 " + eliminator.getName() + " eliminated " + eliminated.getName() + 
+                          "! " + eliminated.getName() + " goes back to start");
+    }
+    
+    @Override
+    public void onConsecutiveSixesPenalty(Player player, int consecutiveSixes) {
+        System.out.println("⚠️ " + player.getName() + " rolled " + consecutiveSixes + 
+                          " sixes in a row! Penalty: back to start");
+    }
+    
+    @Override
+    public void onMoveBlocked(Player player, int diceRoll, String reason) {
+        System.out.println("🚧 " + player.getName() + "'s move blocked (rolled " + diceRoll + "): " + reason);
+    }
+    
     // Getters for accessing statistics
     public int getTotalMoves() { return totalMoves; }
     public int getSnakeEncounters() { return snakeEncounters; }

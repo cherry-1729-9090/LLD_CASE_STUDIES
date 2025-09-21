@@ -105,5 +105,25 @@ public class SimpleDemo {
         public void onGameEnded(Player winner) {
             System.out.println("\n🏁 Game completed successfully!");
         }
+        
+        @Override
+        public void onPlayerTryingToEnter(Player player, int diceRoll, boolean successful) {
+            // Not relevant for simple demo
+        }
+        
+        @Override
+        public void onPlayerEliminated(Player eliminator, Player eliminated) {
+            // Not relevant for simple demo
+        }
+        
+        @Override
+        public void onConsecutiveSixesPenalty(Player player, int consecutiveSixes) {
+            // Not relevant for simple demo
+        }
+        
+        @Override
+        public void onMoveBlocked(Player player, int diceRoll, String reason) {
+            // Not relevant for simple demo
+        }
     }
 }

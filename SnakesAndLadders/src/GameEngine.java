@@ -1,48 +1,40 @@
 import java.util.*;
 
 /**
- * Main game engine that manages the Snakes and Ladders game flow.
- * Follows Single Responsibility Principle - manages game logic only.
- * Follows Open/Closed Principle - can be extended with new game rules.
- * Follows Dependency Inversion Principle - depends on abstractions (Dice interface).
- * Implements Observer Pattern for game events.
+ * Enhanced game engine with configurable rules support.
+ * More human-readable code with clear method names and logic flow.
+ * Supports all modern game variants while maintaining clean architecture.
  */
 public class GameEngine {
     private final Board board;
     private final Dice dice;
     private final List<Player> players;
     private final List<GameObserver> observers;
+    private final GameRules rules;
+    
     private int currentPlayerIndex;
     private boolean gameEnded;
     private Player winner;
-    private Map<String, Integer> playerMoveCount;
     
-    public GameEngine(Board board, Dice dice, List<Player> players) {
-        if (board == null || dice == null || players == null || players.isEmpty()) {
-            throw new IllegalArgumentException("Board, dice, and players cannot be null or empty");
-        }
-        
-        if (players.size() < 2) {
-            throw new IllegalArgumentException("Game requires at least 2 players");
-        }
+    public GameEngine(Board board, Dice dice, List<Player> players, GameRules rules) {
+        validateGameSetup(board, dice, players, rules);
         
         this.board = board;
         this.dice = dice;
         this.players = new ArrayList<>(players);
+        this.rules = rules;
         this.observers = new ArrayList<>();
         this.currentPlayerIndex = 0;
         this.gameEnded = false;
-        this.playerMoveCount = new HashMap<>();
-        
-        // Initialize move count for each player
-        for (Player player : players) {
-            playerMoveCount.put(player.getName(), 0);
-        }
+    }
+    
+    // Convenience constructor with default classic rules
+    public GameEngine(Board board, Dice dice, List<Player> players) {
+        this(board, dice, players, GameRules.createClassicRules());
     }
     
     /**
-     * Adds an observer to the game.
-     * Follows Observer Pattern.
+     * Adds someone to watch the game unfold.
      */
     public void addObserver(GameObserver observer) {
         if (observer != null) {
@@ -51,167 +43,304 @@ public class GameEngine {
     }
     
     /**
-     * Removes an observer from the game.
-     */
-    public void removeObserver(GameObserver observer) {
-        observers.remove(observer);
-    }
-    
-    /**
-     * Starts the game.
+     * Starts the game and lets players take turns until someone wins.
      */
     public void startGame() {
         if (gameEnded) {
-            throw new IllegalStateException("Game has already ended");
+            throw new IllegalStateException("This game has already finished!");
         }
         
-        notifyGameStarted();
+        announceGameStart();
         
-        int maxTurns = 1000; // Prevent infinite games
-        int turnCount = 0;
+        int turnCounter = 0;
+        int maxTurns = 2000; // Prevent infinite games
         
-        while (!gameEnded && turnCount < maxTurns) {
-            playTurn();
-            turnCount++;
+        while (!gameEnded && turnCounter < maxTurns) {
+            playPlayerTurn(getCurrentPlayer());
+            moveToNextPlayer();
+            turnCounter++;
         }
         
-        if (turnCount >= maxTurns) {
-            System.out.println("⏰ Game ended due to maximum turn limit reached!");
-            // Find player closest to winning position
-            winner = players.stream()
-                    .max((p1, p2) -> Integer.compare(p1.getCurrentPosition().getValue(), 
-                                                   p2.getCurrentPosition().getValue()))
-                    .orElse(players.get(0));
-            gameEnded = true;
+        if (turnCounter >= maxTurns) {
+            handleGameTimeout();
         }
         
-        notifyGameEnded();
+        announceGameEnd();
     }
     
     /**
-     * Plays a single turn for the current player.
+     * Handles a single player's turn - the heart of the game logic.
      */
-    private void playTurn() {
-        Player currentPlayer = getCurrentPlayer();
-        Position oldPosition = currentPlayer.getCurrentPosition();
-        
-        // Roll dice
+    private void playPlayerTurn(Player player) {
         int diceRoll = dice.roll();
         
-        // Calculate new position
-        int newPositionValue = oldPosition.getValue() + diceRoll;
+        // Track consecutive sixes for penalty rules
+        if (diceRoll == 6) {
+            player.rollSix();
+        } else {
+            player.rollNonSix();
+        }
         
-        // Check if player would exceed board size
-        if (newPositionValue > board.getSize()) {
-            // Player stays at current position (house rule)
-            notifyPlayerMoved(currentPlayer, oldPosition, oldPosition, diceRoll);
-            moveToNextPlayer();
+        // Check if player gets penalized for too many sixes
+        if (shouldPenalizeForConsecutiveSixes(player)) {
+            applyConsecutiveSixesPenalty(player);
             return;
         }
         
-        Position newPosition = new Position(newPositionValue);
-        currentPlayer.setCurrentPosition(newPosition);
-        incrementPlayerMoveCount(currentPlayer);
-        
-        // Notify about the move
-        notifyPlayerMoved(currentPlayer, oldPosition, newPosition, diceRoll);
-        
-        // Check for snakes and ladders
-        Position finalPosition = board.getFinalPosition(newPosition);
-        
-        if (!finalPosition.equals(newPosition)) {
-            // Player encountered snake or ladder
-            currentPlayer.setCurrentPosition(finalPosition);
-            
-            // Determine if it was a snake or ladder
-            if (finalPosition.getValue() < newPosition.getValue()) {
-                // It was a snake
-                notifySnakeEncounter(currentPlayer, newPosition, finalPosition);
-            } else {
-                // It was a ladder
-                notifyLadderEncounter(currentPlayer, newPosition, finalPosition);
-            }
-        }
-        
-        // Check for win condition
-        if (currentPlayer.hasWon()) {
-            gameEnded = true;
-            winner = currentPlayer;
-            notifyPlayerWon(currentPlayer);
+        // Handle players who need to enter the board first
+        if (!player.hasEnteredBoard() && rules.needSixToEnter()) {
+            handleBoardEntry(player, diceRoll);
             return;
         }
         
-        moveToNextPlayer();
+        // Normal move logic
+        executePlayerMove(player, diceRoll);
     }
     
     /**
-     * Gets the current player.
+     * Handles a player trying to enter the board.
+     */
+    private void handleBoardEntry(Player player, int diceRoll) {
+        if (diceRoll == 6) {
+            player.enterBoard();
+            notifyPlayerTryingToEnter(player, diceRoll, true);
+            // Don't move yet, just entered
+        } else {
+            notifyPlayerTryingToEnter(player, diceRoll, false);
+        }
+    }
+    
+    /**
+     * Executes the actual movement of a player.
+     */
+    private void executePlayerMove(Player player, int diceRoll) {
+        Position oldPosition = player.getCurrentPosition();
+        Position targetPosition = calculateTargetPosition(oldPosition, diceRoll);
+        
+        // Check if move is valid based on winning strategy
+        if (!isValidMove(targetPosition)) {
+            notifyMoveBlocked(player, diceRoll, "Would exceed board limit");
+            return;
+        }
+        
+        // Move player to new position
+        player.setCurrentPosition(targetPosition);
+        notifyPlayerMoved(player, oldPosition, targetPosition, diceRoll);
+        
+        // Handle collisions with other players
+        if (rules.allowPlayerCollisions()) {
+            handlePlayerCollisions(player, targetPosition);
+        }
+        
+        // Check for snakes and ladders
+        Position finalPosition = board.getFinalPosition(targetPosition);
+        if (!finalPosition.equals(targetPosition)) {
+            movePlayerToFinalPosition(player, targetPosition, finalPosition);
+        }
+        
+        // Check if player won
+        if (player.hasWon(rules.getWinningStrategy())) {
+            declareWinner(player);
+        }
+    }
+    
+    /**
+     * Calculates where player should land based on dice roll.
+     */
+    private Position calculateTargetPosition(Position currentPosition, int diceRoll) {
+        int newPositionValue = currentPosition.getValue() + diceRoll;
+        
+        // Handle different winning strategies
+        if (rules.getWinningStrategy() == WinningStrategy.CROSS_FINISH_LINE) {
+            // Allow going beyond board size
+            return new Position(Math.min(newPositionValue, board.getSize()));
+        } else {
+            // Exact landing required
+            if (newPositionValue > board.getSize()) {
+                return currentPosition; // Stay put if would exceed
+            }
+            return new Position(newPositionValue);
+        }
+    }
+    
+    /**
+     * Checks if a move to target position is valid.
+     */
+    private boolean isValidMove(Position targetPosition) {
+        return targetPosition.getValue() <= board.getSize();
+    }
+    
+    /**
+     * Handles what happens when players land on the same square.
+     */
+    private void handlePlayerCollisions(Player currentPlayer, Position position) {
+        for (Player otherPlayer : players) {
+            if (otherPlayer != currentPlayer && 
+                otherPlayer.getCurrentPosition().equals(position) && 
+                otherPlayer.hasEnteredBoard()) {
+                
+                // Send the other player back to start
+                otherPlayer.sendToStart();
+                notifyPlayerEliminated(currentPlayer, otherPlayer);
+            }
+        }
+    }
+    
+    /**
+     * Moves player after encountering snake or ladder.
+     */
+    private void movePlayerToFinalPosition(Player player, Position encounterPosition, Position finalPosition) {
+        player.setCurrentPosition(finalPosition);
+        
+        if (finalPosition.getValue() < encounterPosition.getValue()) {
+            notifySnakeEncounter(player, encounterPosition, finalPosition);
+        } else {
+            notifyLadderEncounter(player, encounterPosition, finalPosition);
+        }
+    }
+    
+    /**
+     * Checks if player should be penalized for consecutive sixes.
+     */
+    private boolean shouldPenalizeForConsecutiveSixes(Player player) {
+        return rules.hasThreeSixesPenalty() && 
+               player.getConsecutiveSixes() >= rules.getMaxConsecutiveSixes();
+    }
+    
+    /**
+     * Applies penalty for rolling too many sixes in a row.
+     */
+    private void applyConsecutiveSixesPenalty(Player player) {
+        int consecutiveSixes = player.getConsecutiveSixes();
+        player.sendToStart();
+        notifyConsecutiveSixesPenalty(player, consecutiveSixes);
+    }
+    
+    /**
+     * Declares the winner and ends the game.
+     */
+    private void declareWinner(Player player) {
+        gameEnded = true;
+        winner = player;
+        notifyPlayerWon(player);
+    }
+    
+    /**
+     * Gets the player whose turn it is right now.
      */
     public Player getCurrentPlayer() {
         return players.get(currentPlayerIndex);
     }
     
     /**
-     * Moves to the next player.
+     * Moves to the next player's turn.
      */
     private void moveToNextPlayer() {
         currentPlayerIndex = (currentPlayerIndex + 1) % players.size();
     }
     
     /**
-     * Increments the move count for a player.
+     * Handles game timeout scenario.
      */
-    private void incrementPlayerMoveCount(Player player) {
-        playerMoveCount.put(player.getName(), playerMoveCount.get(player.getName()) + 1);
+    private void handleGameTimeout() {
+        System.out.println("⏰ Game reached maximum turns! Finding winner...");
+        winner = findLeadingPlayer();
+        gameEnded = true;
     }
     
     /**
-     * Gets the total moves made by a player.
+     * Finds the player who's closest to winning.
      */
-    public int getPlayerMoveCount(Player player) {
-        return playerMoveCount.getOrDefault(player.getName(), 0);
+    private Player findLeadingPlayer() {
+        return players.stream()
+                .filter(Player::hasEnteredBoard)
+                .max((p1, p2) -> Integer.compare(p1.getCurrentPosition().getValue(), 
+                                               p2.getCurrentPosition().getValue()))
+                .orElse(players.get(0));
     }
     
-    // Observer notification methods
-    private void notifyGameStarted() {
+    /**
+     * Validates the game setup before starting.
+     */
+    private void validateGameSetup(Board board, Dice dice, List<Player> players, GameRules rules) {
+        if (board == null || dice == null || players == null || rules == null) {
+            throw new IllegalArgumentException("Game components cannot be null");
+        }
+        
+        if (players.isEmpty()) {
+            throw new IllegalArgumentException("Need at least one player to play");
+        }
+        
+        if (players.size() < 2) {
+            throw new IllegalArgumentException("Need at least 2 players for a proper game");
+        }
+    }
+    
+    // Observer notification methods - more human-readable names
+    private void announceGameStart() {
         for (GameObserver observer : observers) {
             observer.onGameStarted(new ArrayList<>(players));
         }
     }
     
-    private void notifyPlayerMoved(Player player, Position oldPosition, Position newPosition, int diceRoll) {
-        for (GameObserver observer : observers) {
-            observer.onPlayerMoved(player, oldPosition, newPosition, diceRoll);
-        }
-    }
-    
-    private void notifySnakeEncounter(Player player, Position snakeHead, Position snakeTail) {
-        for (GameObserver observer : observers) {
-            observer.onSnakeEncounter(player, snakeHead, snakeTail);
-        }
-    }
-    
-    private void notifyLadderEncounter(Player player, Position ladderBottom, Position ladderTop) {
-        for (GameObserver observer : observers) {
-            observer.onLadderEncounter(player, ladderBottom, ladderTop);
-        }
-    }
-    
-    private void notifyPlayerWon(Player player) {
-        for (GameObserver observer : observers) {
-            observer.onPlayerWon(player, getPlayerMoveCount(player));
-        }
-    }
-    
-    private void notifyGameEnded() {
+    private void announceGameEnd() {
         for (GameObserver observer : observers) {
             observer.onGameEnded(winner);
         }
     }
     
-    // Getters for game state
+    private void notifyPlayerMoved(Player player, Position oldPos, Position newPos, int roll) {
+        for (GameObserver observer : observers) {
+            observer.onPlayerMoved(player, oldPos, newPos, roll);
+        }
+    }
+    
+    private void notifySnakeEncounter(Player player, Position head, Position tail) {
+        for (GameObserver observer : observers) {
+            observer.onSnakeEncounter(player, head, tail);
+        }
+    }
+    
+    private void notifyLadderEncounter(Player player, Position bottom, Position top) {
+        for (GameObserver observer : observers) {
+            observer.onLadderEncounter(player, bottom, top);
+        }
+    }
+    
+    private void notifyPlayerWon(Player player) {
+        for (GameObserver observer : observers) {
+            observer.onPlayerWon(player, player.getTotalMoves());
+        }
+    }
+    
+    private void notifyPlayerTryingToEnter(Player player, int roll, boolean successful) {
+        for (GameObserver observer : observers) {
+            observer.onPlayerTryingToEnter(player, roll, successful);
+        }
+    }
+    
+    private void notifyPlayerEliminated(Player eliminator, Player eliminated) {
+        for (GameObserver observer : observers) {
+            observer.onPlayerEliminated(eliminator, eliminated);
+        }
+    }
+    
+    private void notifyConsecutiveSixesPenalty(Player player, int consecutiveSixes) {
+        for (GameObserver observer : observers) {
+            observer.onConsecutiveSixesPenalty(player, consecutiveSixes);
+        }
+    }
+    
+    private void notifyMoveBlocked(Player player, int roll, String reason) {
+        for (GameObserver observer : observers) {
+            observer.onMoveBlocked(player, roll, reason);
+        }
+    }
+    
+    // Public getters for game state
     public boolean isGameEnded() { return gameEnded; }
     public Player getWinner() { return winner; }
     public List<Player> getPlayers() { return new ArrayList<>(players); }
     public Board getBoard() { return board; }
+    public GameRules getRules() { return rules; }
 }
